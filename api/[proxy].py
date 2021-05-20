@@ -57,25 +57,25 @@ def remove_headers(send_headers: dict):
             send_headers.pop(i)
 
 
-def append_headers(send_headers: dict):
+def append_headers(send_headers: dict, url):
     for i in _SET_HEADERS:
         new_header = request.headers.get(i)
         if new_header is not None:
             send_headers[i] = new_header
+    send_headers["x-orig-url"] = url
 
 
 def lower_dict(d):
     return {k.lower(): v for k, v in dict(d).items()}
 
 
-@app.route("/", methods=["get", "post"])
-@app.route("/api/", methods=["get", "post"])
+@app.route("/", methods=["get", "post", "patch", "put", "delete"])
+@app.route("/api/", methods=["get", "post", "patch", "put", "delete"])
 @nice_try
 def catch_all():
     url = request.args.get("fwd")
     if url is None:
         return INVALID_FWD
-
     parsed = urlparse(url)
     if parsed.scheme not in ALLOWED_SCHEMES:
         return INVALID_FWD
@@ -90,7 +90,7 @@ def catch_all():
     send_headers = lower_dict(request.headers)
 
     remove_headers(send_headers)
-    append_headers(send_headers)
+    append_headers(send_headers, url)
 
     req = func(url, data=send_data, headers=send_headers, stream=True)
 
